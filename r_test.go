@@ -8,13 +8,15 @@ import (
 	"github.com/yawboakye/r/backoff"
 )
 
-func TestMaxRetries(t *testing.T) {
-	fn := func(...interface{}) (interface{}, error) {
-		return nil, errors.New("failed")
-	}
+var (
+	err    = errors.New("error")
+	failFn = func(...interface{}) (interface{}, error) { return nil, err }
+	passFn = func(...interface{}) (interface{}, error) { return nil, nil }
+)
 
+func TestMaxRetries(t *testing.T) {
 	f := F{
-		Fn:         fn,
+		Fn:         failFn,
 		MaxRetries: 5,
 		Backoff:    backoff.Exponential{time.Millisecond},
 	}
@@ -31,7 +33,7 @@ func TestMaxRetries(t *testing.T) {
 
 func TestPassBeforeMaxRetries(t *testing.T) {
 	f := F{
-		Fn:         func(...interface{}) (interface{}, error) { return nil, nil },
+		Fn:         passFn,
 		MaxRetries: 2,
 		Backoff:    backoff.Exponential{time.Millisecond},
 	}
@@ -43,5 +45,24 @@ func TestPassBeforeMaxRetries(t *testing.T) {
 	if f.tries == f.MaxRetries {
 		t.Fatalf("expected fewer than max retries (%d); got=%d instead",
 			f.MaxRetries, f.tries)
+	}
+}
+
+func TestSingleUse(t *testing.T) {
+	f := F{
+		Fn:         passFn,
+		MaxRetries: 2,
+		Backoff:    backoff.Linear{time.Millisecond},
+	}
+
+	f.Run() // Run, without caring about the returned value
+	if f.used == false {
+			t.Fatal("expected f.used to be true; got false instead")
+	}
+
+	tries := f.tries
+	_, err := f.Run()
+	if f.tries != tries || err == nil {
+			t.Fatal("expected no trials. but a trial happened")
 	}
 }

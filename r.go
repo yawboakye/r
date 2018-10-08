@@ -1,6 +1,7 @@
 package r
 
 import (
+	"errors"
 	"time"
 
 	"github.com/yawboakye/r/backoff"
@@ -15,6 +16,7 @@ type F struct {
 	MaxRetries int
 	Backoff    backoff.Strategy
 	tries      int
+	used       bool
 }
 
 // Returns the number of times the function was tried.
@@ -27,13 +29,22 @@ func (f *F) exhausted() bool { return f.tries == f.MaxRetries }
 
 // Run runs the function, retrying on failure until the
 // maximum number of retries is exceeded.
-func (f *F) Run(args ...interface{}) (interface{}, error) {
+func (f *F) Run(args ...interface{}) (res interface{}, err error) {
+
+	// Every manifest can be used just once. After
+	// it has been used it becomes invalid. This ensure
+	// idempotency, if the function succeed during one
+	// of the trials.
+	if f.used {
+		return nil, errors.New("manifest is already used")
+	}
+
 	for {
 		f.tries++
 
-		res, err := f.Fn(args)
+		res, err = f.Fn(args)
 		if err == nil || f.exhausted() {
-			return res, err
+			break
 		}
 
 		// The bad thing happened.
@@ -42,6 +53,9 @@ func (f *F) Run(args ...interface{}) (interface{}, error) {
 		f.wait()
 		continue
 	}
+
+	f.used = true
+	return
 }
 
 // wait waits for a period between two retries
