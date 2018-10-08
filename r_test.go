@@ -9,8 +9,8 @@ import (
 )
 
 func TestMaxRetries(t *testing.T) {
-	fn := func(...interface{}) error {
-		return errors.New("failed")
+	fn := func(...interface{}) (interface{}, error) {
+		return nil, errors.New("failed")
 	}
 
 	f := F{
@@ -19,9 +19,7 @@ func TestMaxRetries(t *testing.T) {
 		Backoff:    backoff.Exponential{time.Millisecond},
 	}
 
-	f.Run()
-
-	if f.Err() == nil {
+	if _, err := f.Run(); err == nil {
 		t.Fatal("expected non-nil error; got nil instead")
 	}
 
@@ -33,14 +31,12 @@ func TestMaxRetries(t *testing.T) {
 
 func TestPassBeforeMaxRetries(t *testing.T) {
 	f := F{
-		Fn:         func(...interface{}) error { return nil },
+		Fn:         func(...interface{}) (interface{}, error) { return nil, nil },
 		MaxRetries: 2,
 		Backoff:    backoff.Exponential{time.Millisecond},
 	}
 
-	f.Run()
-	err := f.Err()
-	if err != nil {
+	if _, err := f.Run(); err != nil {
 		t.Fatalf("expected error to be nil; got=%v instead", err)
 	}
 

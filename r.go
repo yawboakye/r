@@ -11,15 +11,11 @@ import (
 // before returning the ensuing error, and the backoff
 // strategy to use between retries.
 type F struct {
-	Fn         func(...interface{}) error
+	Fn         func(...interface{}) (interface{}, error)
 	MaxRetries int
 	Backoff    backoff.Strategy
-	err        error
 	tries      int
 }
-
-// Err returns the error from executing the function.
-func (f *F) Err() error { return f.err }
 
 // Returns the number of times the function was tried.
 // This is only informational if the function succeeded
@@ -31,13 +27,13 @@ func (f *F) exhausted() bool { return f.tries == f.MaxRetries }
 
 // Run runs the function, retrying on failure until the
 // maximum number of retries is exceeded.
-func (f *F) Run(args ...interface{}) {
+func (f *F) Run(args ...interface{}) (interface{}, error) {
 	for {
 		f.tries++
 
-		f.err = f.Fn(args)
-		if f.err == nil || f.exhausted() {
-			break
+		res, err := f.Fn(args)
+		if err == nil || f.exhausted() {
+			return res, err
 		}
 
 		// The bad thing happened.
