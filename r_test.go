@@ -41,7 +41,7 @@ func TestPassBeforeMaxRetries(t *testing.T) {
 	f.Run()
 	err := f.Err()
 	if err != nil {
-		t.Fatalf("expected error to be nil; got=%q instead", err)
+		t.Fatalf("expected error to be nil; got=%v instead", err)
 	}
 
 	if f.tries == f.MaxRetries {

@@ -19,7 +19,14 @@ type F struct {
 }
 
 // Err returns the error from executing the function.
-func (f *F) Err() error      { return f.err }
+func (f *F) Err() error { return f.err }
+
+// Returns the number of times the function was tried.
+// This is only informational if the function succeeded
+// after a number of calls. In that case it will be
+// different and lower than MaxRetries.
+func (f *F) Tried() int { return f.tries }
+
 func (f *F) exhausted() bool { return f.tries == f.MaxRetries }
 
 // Run runs the function, retrying on failure until the
