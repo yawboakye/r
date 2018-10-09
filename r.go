@@ -7,6 +7,8 @@ import (
 	"github.com/yawboakye/r/backoff"
 )
 
+var usedErr = errors.New("r: manifest already used. cannot be used more than once")
+
 // An F is a manifest for a retry-able function/method.
 // It defines what function to retry, maximum retries
 // before returning the ensuing error, and the backoff
@@ -36,7 +38,7 @@ func (f *F) Run(args ...interface{}) (res interface{}, err error) {
 	// idempotency, if the function succeed during one
 	// of the trials.
 	if f.used {
-		return nil, errors.New("manifest is already used")
+		return nil, usedErr
 	}
 
 	for {
@@ -50,17 +52,16 @@ func (f *F) Run(args ...interface{}) (res interface{}, err error) {
 		// The bad thing happened.
 		// Wait for the duration decided by the backoff
 		// strategy, and then try again.
-		f.wait()
-		continue
+		f.backoff()
 	}
 
 	f.used = true
 	return
 }
 
-// wait waits for a period between two retries
+// backoff waits for a period between two retries
 // of a function. How long it waits for depends
 // on the backoff strategy.
-func (f *F) wait() {
+func (f *F) backoff() {
 	time.Sleep(f.Backoff.WaitDur(f.tries))
 }
