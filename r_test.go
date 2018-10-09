@@ -56,13 +56,13 @@ func TestSingleUse(t *testing.T) {
 	}
 
 	f.Run() // Run, without caring about the returned value
-	if f.used == false {
-			t.Fatal("expected f.used to be true; got false instead")
+	if !f.used {
+		t.Fatal("expected f.used to be true; got false instead")
 	}
 
 	tries := f.tries
 	_, err := f.Run()
 	if f.tries != tries || err == nil {
-			t.Fatal("expected no trials. but a trial happened")
+		t.Fatal("expected no trials. but a trial happened")
 	}
 }
