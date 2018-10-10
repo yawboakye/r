@@ -66,3 +66,26 @@ func TestSingleUse(t *testing.T) {
 		t.Fatal("expected no trials. but a trial happened")
 	}
 }
+
+func TestPassArgs(t *testing.T) {
+	err := errors.New("div: division by zero")
+	div := func(a, b int) (int, error) {
+		if b == 0 {
+			return 0, err
+		}
+		return a / b, nil
+	}
+
+	f := F{
+		MaxRetries: 2,
+		Backoff:    backoff.Linear{time.Millisecond},
+		Fn: func(a ...interface{}) (interface{}, error) {
+			return div(a[0].(int), a[1].(int))
+		},
+	}
+
+	_, e := f.Run(0, 0)
+	if e != err {
+		t.Fatalf("expected %v; got=%v instead", err, e)
+	}
+}
