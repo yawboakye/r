@@ -56,7 +56,7 @@ func (f *F) Run(args ...interface{}) (res interface{}, err error) {
 	for {
 		f.tries++
 
-		res, err = f.Fn(args)
+		res, err = f.Fn(args...)
 		if err == nil || f.exhausted() {
 			break
 		}
