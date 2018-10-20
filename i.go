@@ -10,12 +10,12 @@ import (
 // at any interval (I suppose using the sleep pattern),
 // this is all you need:
 //
-//			for {
-//					go func() {
-//							statements...
-//					}
-//					time.Sleep(duration)
-//			}
+// for {
+//   go func() {
+//	   statements...
+//   }
+//   time.Sleep(duration)
+// }
 
 // Trying to stop an interval that hasn't already
 // been running returns this error.
