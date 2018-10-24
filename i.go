@@ -33,6 +33,9 @@ type I struct {
 	running bool
 }
 
+// NewInterval returns an initialized interval ready
+// to be started. In most cases, if not all, this is
+// how you'd want to create a new interval.
 func NewInterval(intv time.Duration, f func()) *I {
 	return &I{
 		fn:      f,
@@ -43,8 +46,7 @@ func NewInterval(intv time.Duration, f func()) *I {
 }
 
 // Starts the intervaled execution of the function.
-// It returns the internal timer channel. Closing
-// the channel stops the execution.
+// Returns true if the interval was started, false otherwise.
 func (i *I) Start() bool {
 	if i.running {
 		return false
