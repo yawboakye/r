@@ -19,7 +19,7 @@ import (
 
 // Trying to stop an interval that hasn't already
 // been running returns this error.
-var stopErr = errors.New("i: interval not running")
+var errStop = errors.New("i: interval not running")
 
 // I is a manifest for a function/method that should
 // be run at the given interval. The next call is
@@ -45,7 +45,7 @@ func NewInterval(intv time.Duration, f func()) *I {
 	}
 }
 
-// Starts the intervaled execution of the function.
+// Start starts the intervaled execution of the function.
 // Returns true if the interval was started, false otherwise.
 func (i *I) Start() bool {
 	if i.running {
@@ -84,7 +84,7 @@ func (i *I) Start() bool {
 // an error is returned.
 func (i *I) Stop() error {
 	if !i.running {
-		return stopErr
+		return errStop
 	}
 
 	i.running = false

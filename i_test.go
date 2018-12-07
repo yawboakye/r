@@ -70,6 +70,6 @@ func TestStop(t *testing.T) {
 
 	// stopping an already stopped interval returns error
 	if err := i.Stop(); err == nil {
-		t.Fatalf("expected=%v; got=%v instead", stopErr, nil)
+		t.Fatalf("expected=%v; got=%v instead", errStop, nil)
 	}
 }

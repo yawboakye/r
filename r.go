@@ -11,7 +11,7 @@ import (
 // is made to use it again, this error is returned. If
 // you desire to trial the manifest again, you should make
 // a new one instead.
-var usedErr = errors.New("r: manifest already used. cannot be used more than once")
+var errUsed = errors.New("r: manifest already used. cannot be used more than once")
 
 // F is a manifest for a retry-able function/method.
 // It defines what function to retry, maximum retries
@@ -25,7 +25,7 @@ type F struct {
 	used       bool
 }
 
-// Returns the number of times the function was tried.
+// Tried returns the number of times the function was tried.
 // This is only informational if the function succeeded
 // after a number of calls. In that case it will be
 // different and lower than MaxRetries.
@@ -50,7 +50,7 @@ func (f *F) Run(args ...interface{}) (res interface{}, err error) {
 	// idempotency, if the function succeed during one
 	// of the trials.
 	if f.used {
-		return nil, usedErr
+		return nil, errUsed
 	}
 
 	for {
