@@ -8,18 +8,13 @@ import (
 
 func TestNew(t *testing.T) {
 	i := NewInterval(time.Second, func() {})
-	if cap(i.timer) != 1 {
+	if cap(i.timer) != 0 {
 		t.Fatalf("expected channel buffer size 1; got=%d instead", cap(i.timer))
 	}
 
 	if i.running {
 		t.Fatalf("expected running to be false")
 	}
-}
-
-func wait(secs int) {
-	asDur := time.Duration(secs)
-	time.Sleep(asDur * time.Second)
 }
 
 // TODO(yawboakye): Revisit this test case. I'm not
@@ -52,11 +47,26 @@ func TestStartStart(t *testing.T) {
 	i.Stop()
 }
 
-func TestStop(t *testing.T) {
+func TestStarted(t *testing.T) {
 	i := NewInterval(time.Second, func() {})
 	i.Start()
 	wait(1)
+
+	if i.Started() != i.started {
+		t.Fatalf("expected=%d; got=%d instead", i.started, i.Started())
+	}
+}
+
+func TestStop(t *testing.T) {
+	var j int
+	i := NewInterval(2*time.Second, func() { j++ })
+	i.Start()
+	wait(3)
 	i.Stop()
+
+	if j != i.started {
+		t.Fatalf("expected completions=%d; got=%d instead", i.started, j)
+	}
 
 	// expect `running` to be false
 	if i.running {
@@ -73,3 +83,50 @@ func TestStop(t *testing.T) {
 		t.Fatalf("expected=%v; got=%v instead", errStop, nil)
 	}
 }
+
+func TestAbort(t *testing.T) {
+	var j int
+
+	// slowFn waits for 10 seconds and then
+	// increments j.
+	slowFn := func() {
+		time.Sleep(2 * time.Second)
+		j++
+	}
+
+	i := NewInterval(time.Second, slowFn)
+	i.Start()
+	wait(3)
+	i.Abort()
+
+	if j >= i.started {
+		t.Fatalf("expected completions=%d; got=%d instead", j, i.started)
+	}
+
+	// expect `aborted` to be true
+	if !i.aborted {
+		t.Fatal("interval not aborted")
+	}
+
+	// expect the abort channel to be closed
+	if _, ok := <-i.abort; ok {
+		t.Fatal("expected abort channel to be closed")
+	}
+
+	// expect `running` to be false
+	if i.running {
+		t.Fatal("interval still running. not stopped")
+	}
+
+	// expect the timer channel to be closed
+	if _, ok := <-i.timer; ok {
+		t.Fatal("expected timer channel to be closed")
+	}
+
+	// aborting an already aborted interval returns error
+	if err := i.Abort(); err == nil {
+		t.Fatalf("expected=%v; got=%v instead", errAborted, nil)
+	}
+}
+
+func wait(t int) { time.Sleep(time.Duration(t) * time.Second) }

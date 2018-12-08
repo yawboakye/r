@@ -2,6 +2,7 @@ package r
 
 import (
 	"errors"
+	"sync"
 	"time"
 )
 
@@ -21,6 +22,10 @@ import (
 // been running returns this error.
 var errStop = errors.New("i: interval not running")
 
+// Trying to abort an already aborted interval returns
+// this error.
+var errAborted = errors.New("i: interval already aborted")
+
 // I is a manifest for a function/method that should
 // be run at the given interval. The next call is
 // schedule right at the beginning of the current call
@@ -29,8 +34,13 @@ var errStop = errors.New("i: interval not running")
 type I struct {
 	fn      func()
 	intv    time.Duration
+	wg      sync.WaitGroup
 	timer   chan struct{}
+	abort   chan struct{}
+	done    chan struct{}
 	running bool
+	aborted bool
+	started int
 }
 
 // NewInterval returns an initialized interval ready
@@ -40,13 +50,14 @@ func NewInterval(intv time.Duration, f func()) *I {
 	return &I{
 		fn:      f,
 		intv:    intv,
-		timer:   make(chan struct{}, 1),
+		timer:   make(chan struct{}),
+		abort:   make(chan struct{}),
+		done:    make(chan struct{}),
 		running: false,
 	}
 }
 
 // Start starts the intervaled execution of the function.
-// Returns true if the interval was started, false otherwise.
 func (i *I) Start() bool {
 	if i.running {
 		return false
@@ -59,7 +70,6 @@ func (i *I) Start() bool {
 			i.timer <- struct{}{}
 			time.Sleep(i.intv)
 		}
-		close(i.timer)
 	}()
 
 	go func() {
@@ -72,21 +82,62 @@ func (i *I) Start() bool {
 				break
 			}
 
-			go i.fn()
+			go func() {
+				i.fn()
+				i.done <- struct{}{}
+			}()
+			i.started++
+
+			select {
+			case <-i.abort:
+				// Exit the parent goroutine if we receive
+				// on the `abort` channel. This should close
+				// all running tasks.
+				return
+
+			case <-i.done:
+				continue
+			}
 		}
 	}()
 
 	return true
 }
 
+// Started returns a count of calls that have been started
+// so far. Even after calling Stop or Abort, this value is
+// still available.
+func (i *I) Started() int { return i.started }
+
 // Stop stops a running interval.
 // If the interval was already stopped or not running,
-// an error is returned.
+// an error is returned. It doesn't stop calls that
+// have already been started. It just stops the interval
+// from starting new ones. If you want to abort running
+// functions then Abort instead.
 func (i *I) Stop() error {
 	if !i.running {
 		return errStop
 	}
 
+	close(i.timer)
 	i.running = false
+	return nil
+}
+
+// Abort aborts all running functions. After a call
+// to Stop, functions that had already been started
+// are not terminated. If you want to stop the
+// interval and abort all functions that had been
+// started but not completed, abort instead.
+func (i *I) Abort() error {
+	if i.aborted {
+		return errAborted
+	}
+
+	close(i.timer)
+	close(i.abort)
+	i.running = false
+	i.aborted = true
 	return nil
 }
