@@ -2,7 +2,6 @@ package r
 
 import (
 	"errors"
-	"sync"
 	"time"
 )
 
@@ -34,7 +33,6 @@ var errAborted = errors.New("i: interval already aborted")
 type I struct {
 	fn      func()
 	intv    time.Duration
-	wg      sync.WaitGroup
 	timer   chan struct{}
 	abort   chan struct{}
 	done    chan struct{}
