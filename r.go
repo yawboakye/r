@@ -27,8 +27,8 @@ type F struct {
 
 // Tried returns the number of times the function was tried.
 // This is only informational if the function succeeded
-// after a number of calls. In that case it will be
-// different and lower than MaxRetries.
+// after a number of calls. In that case it could be
+// different and lower than `MaxRetries`.
 func (f *F) Tried() int { return f.tries }
 
 // Have we run out of retries?
@@ -52,6 +52,9 @@ func (f *F) Run(args ...interface{}) (res interface{}, err error) {
 	if f.used {
 		return nil, errUsed
 	}
+	// Consider the manifest used even before the first attempt to
+	// invoke the function.
+	f.used = true
 
 	for {
 		f.tries++
@@ -67,6 +70,5 @@ func (f *F) Run(args ...interface{}) (res interface{}, err error) {
 		f.backoff()
 	}
 
-	f.used = true
 	return
 }
