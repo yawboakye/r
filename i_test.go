@@ -87,8 +87,7 @@ func TestStop(t *testing.T) {
 func TestAbort(t *testing.T) {
 	var j int
 
-	// slowFn waits for 10 seconds and then
-	// increments j.
+	// slowFn waits for 2 seconds and then increments j.
 	slowFn := func() {
 		time.Sleep(2 * time.Second)
 		j++
